@@ -4,6 +4,7 @@ import oop.search.application.NewsProvider;
 import oop.search.domain.NewsCategory;
 import oop.search.domain.NewsResult;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpRequest;
@@ -22,9 +23,9 @@ public class NaverNewsProvider extends AbstractHttpClient implements NewsProvide
 
     public NaverNewsProvider(){
         super(NEWS_API_URL);
-        this.clientId = System.getenv("NAVER_CLIENT_ID");
-        this.clientSecret = System.getenv("NAVER_CLIENT_SECRET");
-        this.category = NewsCategory.DATE;
+        this.clientId = Env.getRequired("NAVER_CLIENT_ID");
+        this.clientSecret = Env.getRequired("NAVER_CLIENT_SECRET");
+        this.category = Env.getRequiredEnum("NEWS_CATEGORY", NewsCategory.class);
     }
 
     @Override
@@ -53,8 +54,14 @@ public class NaverNewsProvider extends AbstractHttpClient implements NewsProvide
                     HttpResponse.BodyHandlers.ofString()
             );
 
+            if(response.statusCode() != 200){
+                throw new IllegalStateException(
+                        "Naver API 요청 실패. statusCode = " + response.statusCode() + ", body = " + response.body()
+                );
+            }
+
             /// 정상 수신 확인
-            System.out.println("statusCode = " + response.statusCode());
+            System.out.println("Naver API statusCode = " + response.statusCode());
 
             String body = response.body();
 
@@ -81,8 +88,11 @@ public class NaverNewsProvider extends AbstractHttpClient implements NewsProvide
 
                 results.add(newsResult);
             }
-        }catch (Exception e){
-            e.printStackTrace();
+        }catch (IOException e){
+            throw new IllegalStateException("Naver API 요청 중 입출력 오류가 발생하였습니다.", e);
+        }catch (InterruptedException e){
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Naver API 요청이 중단되었습니다.", e);
         }
 
         return results;

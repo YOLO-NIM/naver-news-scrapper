@@ -1,0 +1,42 @@
+name: Naver News Scraper
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scrape-news:
+    runs-on: ubuntu-latest
+
+    env:
+      NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+      NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NEWS_QUERY: ${{ vars.NEWS_QUERY }}
+      NEWS_DISPLAY: ${{ vars.NEWS_DISPLAY }}
+      NEWS_CATEGORY: ${{ vars.NEWS_CATEGORY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Compile Java files
+        run: |
+          mkdir -p out
+          javac -encoding UTF-8 -d out $(find src -name "*.java")
+
+      - name: Run news scraper
+        run: |
+          java -cp out oop.search.presentation.GitHubNewsApp
